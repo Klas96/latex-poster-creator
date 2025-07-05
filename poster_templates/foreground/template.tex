@@ -9,16 +9,30 @@
 % Example: A title and some dummy text
 % \title{Poster Title}
 % \author{Author Name}
-% \date{\today}
+% \date{\today} % Standard LaTeX date, can be replaced or populated
 
-% \begin{document}
-% \maketitle % If using standard article class title
+% \begin{document} % Assuming this is part of a larger document structure
+% \maketitle % If using standard article class title, needs \title and \author defined
 
-\section*{Main Section Title}
-\lipsum[1-2] % Placeholder text
+% --- BEGIN CUSTOMIZABLE CONTENT ---
 
-\subsection*{Subsection}
-\lipsum[3]
+% Poster Title Placeholder
+\section*{%%TITLE%%}
+
+% Main Content Placeholder
+%%CONTENT%%
+
+% Example of how you might structure content:
+% \subsection*{Introduction}
+% \lipsum[1] % Replace with actual content for Introduction
+%
+% \subsection*{Methods}
+% \lipsum[2] % Replace with actual content for Methods
+%
+% \subsection*{Results}
+% \lipsum[3] % Replace with actual content for Results
+
+% --- END CUSTOMIZABLE CONTENT ---
 
 % \end{document} % Only if this is a standalone compilable document part
 
