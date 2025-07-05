@@ -2,15 +2,12 @@
 % This file is intended for background elements of a poster.
 % For example, background color, full-page images, or decorative frames.
 
-\documentclass{article}
-\usepackage{geometry}
-\usepackage{tikz}
+% Note: \documentclass, \usepackage, \geometry, \begin{document}, \end{document}
+% are provided by the master LaTeX document that includes this file.
+% Only include content specific to the background layer here.
+% Ensure any necessary packages (like tikz for the example below) are included in the master document.
 
-\geometry{paperwidth=36in, paperheight=24in, margin=1in} % Example poster dimensions
-
-\begin{document}
-
-% Example: A simple colored background
+% Example: A simple colored background using TikZ (requires \usepackage{tikz} in master)
 % \begin{tikzpicture}[remember picture, overlay]
 %   \fill[blue!20] (current page.south west) rectangle (current page.north east);
 % \end{tikzpicture}
@@ -18,5 +15,4 @@
 % --- Add background elements here ---
 
 
-% This template is meant to be \input{} or otherwise included into a main poster document.
-\end{document}
+% This template is meant to be part of a larger LaTeX document.

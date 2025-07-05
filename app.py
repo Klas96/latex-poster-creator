@@ -1,10 +1,40 @@
 from flask import Flask, request, jsonify
 import os
+from flask import Response # Added for custom content type
 
 app = Flask(__name__)
 
 # Define the base directory for templates
 TEMPLATE_BASE_DIR = "poster_templates"
+
+MASTER_LATEX_TEMPLATE = r"""
+\documentclass[landscape]{article} % Using landscape for a poster feel
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{tikz} % For potential advanced layering/graphics
+
+% Poster dimensions (example: A0 size, common for posters)
+% Adjust as needed, or make this configurable later
+\geometry{paperwidth=118.9cm, paperheight=84.1cm, margin=2cm}
+
+\pagestyle{empty} % No page numbers for a poster
+
+\begin{document}
+
+% --- Background Content ---
+%%BACKGROUND_CONTENT%%
+
+% --- Midground Content ---
+%%MIDGROUND_CONTENT%%
+
+% --- Foreground Content ---
+%%FOREGROUND_CONTENT%%
+
+\end{document}
+"""
 
 @app.route('/poster/compose', methods=['GET'])
 def compose_poster():
@@ -41,48 +71,52 @@ def compose_poster():
     title = request.args.get('title')
     content = request.args.get('content')
 
-    processed_foreground_content = None
-    # If title and content are provided, try to process the foreground template
-    if title is not None and content is not None:
-        try:
-            with open(fg_path, 'r') as f:
-                foreground_content = f.read()
+    # Initialize content variables
+    raw_background_content = ""
+    raw_midground_content = ""
+    final_foreground_content = "" # This will be processed or raw if title/content not provided
 
-            # Define placeholders and replace them
-            # Using simple string replacement. For complex scenarios, a proper templating engine might be better.
-            processed_foreground_content = foreground_content.replace('%%TITLE%%', title)
-            processed_foreground_content = processed_foreground_content.replace('%%CONTENT%%', content)
+    # Read background template
+    try:
+        with open(bg_path, 'r', encoding='utf-8') as f:
+            raw_background_content = f.read()
+    except Exception as e:
+        return jsonify({"error": f"Failed to read background template: {background_template_name}.tex", "details": str(e)}), 500
 
-            # For now, we'll include the processed content in the response.
-            # Later, this would be part of the combined LaTeX document.
+    # Read midground template
+    try:
+        with open(mg_path, 'r', encoding='utf-8') as f:
+            raw_midground_content = f.read()
+    except Exception as e:
+        return jsonify({"error": f"Failed to read midground template: {midground_template_name}.tex", "details": str(e)}), 500
 
-        except Exception as e:
-            # Handle potential file read errors, though os.path.exists should have caught non-existence
-            return jsonify({"error": "Failed to read or process foreground template", "details": str(e)}), 500
+    # Process or read foreground template
+    try:
+        with open(fg_path, 'r', encoding='utf-8') as f:
+            foreground_template_content = f.read()
 
-    response_data = {
-        "message": "Templates selected. See processed_foreground_content if title/content provided.",
-        "selected_templates": {
-            "foreground": foreground_template_name,
-            "midground": midground_template_name,
-            "background": background_template_name
-        },
-        "custom_data_provided": {
-            "title_provided": title is not None,
-            "content_provided": content is not None
-        },
-        "expected_paths": {
-            "foreground": fg_path,
-            "midground": mg_path,
-            "background": bg_path
-        }
-    }
+        if title is not None and content is not None:
+            # Substitute title and content if provided
+            current_fg_content = foreground_template_content.replace('%%TITLE%%', title)
+            final_foreground_content = current_fg_content.replace('%%CONTENT%%', content)
+        else:
+            # Use raw foreground content if title/content not provided
+            final_foreground_content = foreground_template_content
 
-    if processed_foreground_content is not None:
-        response_data["processed_foreground_content_preview"] = processed_foreground_content[:500] + "..." # Preview
-        # In a real scenario, you might return the full content, or use it to generate a PDF.
+    except Exception as e:
+        return jsonify({"error": f"Failed to read or process foreground template: {foreground_template_name}.tex", "details": str(e)}), 500
 
-    return jsonify(response_data), 200
+    # Combine into master template
+    try:
+        combined_latex_doc = MASTER_LATEX_TEMPLATE.replace('%%BACKGROUND_CONTENT%%', raw_background_content)
+        combined_latex_doc = combined_latex_doc.replace('%%MIDGROUND_CONTENT%%', raw_midground_content)
+        combined_latex_doc = combined_latex_doc.replace('%%FOREGROUND_CONTENT%%', final_foreground_content)
+    except Exception as e:
+        # This would catch unexpected errors if content variables are not strings, etc.
+        # Also good if MASTER_LATEX_TEMPLATE was somehow not loaded correctly (though it's a global constant here)
+        return jsonify({"error": "Failed to combine LaTeX templates into master document.", "details": str(e)}), 500
+
+    return Response(combined_latex_doc, mimetype='application/x-latex')
 
 # --- Step 3: Remove or update the old /poster/{template_name} endpoint ---
 # For now, let's remove the old endpoint as per the plan.

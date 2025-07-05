@@ -2,16 +2,17 @@
 % This file is intended for midground elements of a poster.
 % For example, secondary content blocks, connecting lines, or semi-transparent overlays.
 
-\documentclass{article} % Or use a class more specific to your poster system if available
-\usepackage{tikz}
+% Note: \documentclass, \usepackage, \begin{document}, \end{document}
+% are provided by the master LaTeX document that includes this file.
+% Only include content specific to the midground layer here.
+% Ensure any necessary packages (like tikz for the example below) are included in the master document.
 
 % --- Add midground elements here ---
-% Example: A simple box for content
+% Example: A simple box for content using TikZ (requires \usepackage{tikz} in master)
 % \begin{tikzpicture}
 %   \node[draw, fill=yellow!30, minimum width=10cm, minimum height=5cm] at (0,0) {Midground Content Area};
 % \end{tikzpicture}
 
 
-% This template is meant to be \input{} or otherwise included into a main poster document.
+% This template is meant to be part of a larger LaTeX document.
 % It will likely be layered on top of a background and below a foreground.
-\end{document}

@@ -2,29 +2,32 @@
 % This file is intended for foreground elements of a poster.
 % For example, main text content, titles, key figures, and important equations.
 
-\documentclass{article} % Or use a class more specific to your poster system if available
-\usepackage{lipsum} % For dummy text
+% Note: \documentclass, \usepackage, \begin{document}, \end{document}
+% are provided by the master LaTeX document that includes this file.
+% Only include content specific to the foreground layer here.
+% Ensure any necessary packages (like lipsum for the example below, or others for your content)
+% are included in the master document. \usepackage{lipsum} is in the master for this example.
 
 % --- Add foreground elements here ---
 % Example: A title and some dummy text
-% \title{Poster Title}
+% \title{Poster Title} % These would be set by the %%TITLE%% placeholder if using this approach
 % \author{Author Name}
-% \date{\today} % Standard LaTeX date, can be replaced or populated
+% \date{\today}
 
-% \begin{document} % Assuming this is part of a larger document structure
-% \maketitle % If using standard article class title, needs \title and \author defined
+% \maketitle % This command usually requires \title, \author, etc. to be defined beforehand.
+             % If %%TITLE%% is just a \section*, then \maketitle might not be what you want here.
 
 % --- BEGIN CUSTOMIZABLE CONTENT ---
 
-% Poster Title Placeholder
+% Poster Title Placeholder (receives value from API 'title' parameter)
 \section*{%%TITLE%%}
 
-% Main Content Placeholder
+% Main Content Placeholder (receives value from API 'content' parameter)
 %%CONTENT%%
 
-% Example of how you might structure content:
+% Example of how you might structure content within %%CONTENT%% or as separate commands:
 % \subsection*{Introduction}
-% \lipsum[1] % Replace with actual content for Introduction
+% \lipsum[1] % Replace with actual content for Introduction (requires \usepackage{lipsum})
 %
 % \subsection*{Methods}
 % \lipsum[2] % Replace with actual content for Methods
@@ -34,8 +37,5 @@
 
 % --- END CUSTOMIZABLE CONTENT ---
 
-% \end{document} % Only if this is a standalone compilable document part
-
-% This template is meant to be \input{} or otherwise included into a main poster document.
+% This template is meant to be part of a larger LaTeX document.
 % It will be layered on top of background and midground elements.
-\end{document}
