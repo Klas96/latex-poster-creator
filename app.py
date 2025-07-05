@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
 import os
 from flask import Response # Added for custom content type
+import subprocess
+import tempfile
+import shutil # For robust directory removal, though tempfile.TemporaryDirectory handles it
 
 app = Flask(__name__)
 
@@ -35,6 +38,94 @@ MASTER_LATEX_TEMPLATE = r"""
 
 \end{document}
 """
+
+# Helper function for LaTeX compilation
+def compile_latex_to_pdf(latex_source_string):
+    """
+    Compiles a given LaTeX source string to a PDF.
+    Returns a tuple (pdf_content_bytes, error_log_string).
+    If successful, pdf_content_bytes is the PDF data, error_log_string is None.
+    If failed, pdf_content_bytes is None, error_log_string contains error info.
+    """
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        tex_file_path = os.path.join(temp_dir_name, "poster.tex")
+        pdf_file_path = os.path.join(temp_dir_name, "poster.pdf")
+        log_file_path = os.path.join(temp_dir_name, "poster.log")
+
+        try:
+            with open(tex_file_path, 'w', encoding='utf-8') as f:
+                f.write(latex_source_string)
+        except Exception as e:
+            return None, f"Error writing temporary .tex file: {str(e)}"
+
+        cmd = [
+            "pdflatex",
+            "-interaction=nonstopmode",
+            f"-output-directory={temp_dir_name}",
+            "-jobname=poster",
+            tex_file_path
+        ]
+
+        compilation_log_details = ""
+        compilation_success = False
+
+        for i in range(2): # Run pdflatex twice
+            try:
+                process = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=30) # Added timeout
+
+                # Append stdout/stderr from pdflatex run
+                if process.stdout:
+                    compilation_log_details += f"\n--- Pass {i+1} STDOUT ---\n{process.stdout}"
+                if process.stderr:
+                    compilation_log_details += f"\n--- Pass {i+1} STDERR ---\n{process.stderr}"
+
+                # Try to read the .log file for more detailed errors after each pass if process failed
+                if process.returncode != 0:
+                    if os.path.exists(log_file_path):
+                        try:
+                            with open(log_file_path, 'r', encoding='utf-8', errors='replace') as log_f:
+                                compilation_log_details += f"\n--- Pass {i+1} Full Log File (poster.log) ---\n" + log_f.read()
+                        except Exception as log_e:
+                            compilation_log_details += f"\n--- Error reading log file for pass {i+1}: {str(log_e)} ---"
+                    else:
+                        compilation_log_details += f"\n--- Pass {i+1} Log File (poster.log) not found. ---"
+                    break # Stop if a pass fails
+
+                if i == 1 and os.path.exists(pdf_file_path): # After second potentially successful pass
+                    compilation_success = True
+
+            except FileNotFoundError:
+                return None, "pdflatex command not found. Ensure LaTeX is installed and in PATH."
+            except subprocess.TimeoutExpired:
+                return None, f"pdflatex command timed out after 30 seconds during pass {i+1}. LaTeX source might be too complex or stuck in a loop.\nLog so far:\n{compilation_log_details}"
+            except Exception as e:
+                return None, f"Error during pdflatex execution on pass {i+1}: {str(e)}\nLog so far:\n{compilation_log_details}"
+
+        if compilation_success and os.path.exists(pdf_file_path):
+            try:
+                with open(pdf_file_path, 'rb') as f_pdf:
+                    pdf_content = f_pdf.read()
+                return pdf_content, None # pdf_content_bytes, no error_log_string
+            except Exception as e:
+                return None, f"Error reading generated PDF: {str(e)}"
+        else:
+            # Compilation failed or PDF not found after two passes
+            final_error_message = "LaTeX compilation failed."
+            if not os.path.exists(pdf_file_path):
+                 final_error_message += " PDF file was not generated."
+
+            # Ensure log_file_path content is captured if not already in compilation_log_details from a failed run
+            if os.path.exists(log_file_path) and "Full Log File" not in compilation_log_details:
+                try:
+                    with open(log_file_path, 'r', encoding='utf-8', errors='replace') as log_f:
+                        compilation_log_details += "\n--- Final Full Log File (poster.log) ---\n" + log_f.read()
+                except Exception as log_e:
+                    compilation_log_details += f"\n--- Error reading final log file: {str(log_e)} ---"
+
+            if not compilation_log_details:
+                compilation_log_details = "No detailed log was captured. Check pdflatex installation and .tex file syntax."
+
+            return None, f"{final_error_message}\nDetails:\n{compilation_log_details}"
 
 @app.route('/poster/compose', methods=['GET'])
 def compose_poster():
@@ -73,8 +164,8 @@ def compose_poster():
 
     # Initialize content variables
     raw_background_content = ""
-    raw_midground_content = ""
-    final_foreground_content = "" # This will be processed or raw if title/content not provided
+    processed_midground_content = "" # Renamed, as this will be processed
+    raw_foreground_content = ""    # Renamed, as this is now always raw
 
     # Read background template
     try:
@@ -83,40 +174,65 @@ def compose_poster():
     except Exception as e:
         return jsonify({"error": f"Failed to read background template: {background_template_name}.tex", "details": str(e)}), 500
 
-    # Read midground template
+    # Read and process midground template
     try:
         with open(mg_path, 'r', encoding='utf-8') as f:
-            raw_midground_content = f.read()
-    except Exception as e:
-        return jsonify({"error": f"Failed to read midground template: {midground_template_name}.tex", "details": str(e)}), 500
-
-    # Process or read foreground template
-    try:
-        with open(fg_path, 'r', encoding='utf-8') as f:
-            foreground_template_content = f.read()
+            midground_template_content = f.read()
 
         if title is not None and content is not None:
-            # Substitute title and content if provided
-            current_fg_content = foreground_template_content.replace('%%TITLE%%', title)
-            final_foreground_content = current_fg_content.replace('%%CONTENT%%', content)
+            # Substitute title and content into midground template if provided
+            current_mg_content = midground_template_content.replace('%%TITLE%%', title)
+            processed_midground_content = current_mg_content.replace('%%CONTENT%%', content)
         else:
-            # Use raw foreground content if title/content not provided
-            final_foreground_content = foreground_template_content
+            # Use raw midground content (with placeholders intact) if title/content not provided
+            processed_midground_content = midground_template_content
 
     except Exception as e:
-        return jsonify({"error": f"Failed to read or process foreground template: {foreground_template_name}.tex", "details": str(e)}), 500
+        return jsonify({"error": f"Failed to read or process midground template: {midground_template_name}.tex", "details": str(e)}), 500
+
+    # Read foreground template (now always raw)
+    try:
+        with open(fg_path, 'r', encoding='utf-8') as f:
+            raw_foreground_content = f.read()
+    except Exception as e:
+        return jsonify({"error": f"Failed to read foreground template: {foreground_template_name}.tex", "details": str(e)}), 500
 
     # Combine into master template
     try:
         combined_latex_doc = MASTER_LATEX_TEMPLATE.replace('%%BACKGROUND_CONTENT%%', raw_background_content)
-        combined_latex_doc = combined_latex_doc.replace('%%MIDGROUND_CONTENT%%', raw_midground_content)
-        combined_latex_doc = combined_latex_doc.replace('%%FOREGROUND_CONTENT%%', final_foreground_content)
+        combined_latex_doc = combined_latex_doc.replace('%%MIDGROUND_CONTENT%%', processed_midground_content) # Use processed midground
+        combined_latex_doc = combined_latex_doc.replace('%%FOREGROUND_CONTENT%%', raw_foreground_content) # Use raw foreground
     except Exception as e:
         # This would catch unexpected errors if content variables are not strings, etc.
         # Also good if MASTER_LATEX_TEMPLATE was somehow not loaded correctly (though it's a global constant here)
         return jsonify({"error": "Failed to combine LaTeX templates into master document.", "details": str(e)}), 500
 
-    return Response(combined_latex_doc, mimetype='application/x-latex')
+    # At this point, combined_latex_doc contains the full LaTeX source string.
+    # Now, compile it to PDF.
+    pdf_bytes, error_log = compile_latex_to_pdf(combined_latex_doc)
+
+    if pdf_bytes:
+        # Compilation successful, return the PDF
+        return Response(
+            pdf_bytes,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': 'attachment;filename=poster.pdf'}
+        )
+    else:
+        # Compilation failed, return an error message with the log
+        # Be cautious about sending raw logs if they might contain sensitive info or be too large.
+        # For now, we send a truncated log for easier debugging by the API user.
+        max_log_length = 2000 # Truncate log to avoid overly large error responses
+        truncated_log = error_log[:max_log_length] + ("..." if len(error_log) > max_log_length else "")
+
+        error_response = {
+            "error": "LaTeX compilation failed.",
+            "details": "Could not generate PDF from the combined LaTeX source.",
+            "compilation_log_preview": truncated_log
+        }
+        # It might be better to log the full error_log on the server for internal debugging.
+        # print(f"LaTeX Compilation Failed. Full Log:\n{error_log}") # Server-side log
+        return jsonify(error_response), 500 # Internal Server Error, as the compilation is a server-side process
 
 # --- Step 3: Remove or update the old /poster/{template_name} endpoint ---
 # For now, let's remove the old endpoint as per the plan.

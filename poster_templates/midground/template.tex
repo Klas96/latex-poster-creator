@@ -8,6 +8,19 @@
 % Ensure any necessary packages (like tikz for the example below) are included in the master document.
 
 % --- Add midground elements here ---
+
+% Poster Title Placeholder (receives value from API 'title' parameter)
+% This is just an example of how you might use it. Adjust as needed.
+% For example, you might draw a TikZ node and place the title inside it.
+\begin{center} % Example: Center the title
+    \Large %%TITLE%%
+\end{center}
+\vspace{1em} % Some space after the title
+
+% Main Content Placeholder (receives value from API 'content' parameter)
+% This could be raw text, or more complex LaTeX structures.
+%%CONTENT%%
+
 % Example: A simple box for content using TikZ (requires \usepackage{tikz} in master)
 % \begin{tikzpicture}
 %   \node[draw, fill=yellow!30, minimum width=10cm, minimum height=5cm] at (0,0) {Midground Content Area};
