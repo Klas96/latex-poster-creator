@@ -43,6 +43,32 @@ class TestApp(unittest.TestCase):
         with open(os.path.join(self.test_mg_dir, "test_error_mg.tex"), "w") as f:
             f.write("% Test Midground Template with Error\n\\section*{%%TITLE%%}\n%%CONTENT%%\n\\thisisalatexerror\n\\newcommand{\\testMGERR}{MG_ERR_OK}")
 
+        # --- Create new specific templates for testing them ---
+        # bg_gradient.tex (minimal version)
+        with open(os.path.join(self.test_bg_dir, "test_bg_gradient.tex"), "w") as f:
+            f.write("% Test Gradient BG\n\\begin{tikzpicture}[remember picture, overlay]\n\\shade[top color=yellow, bottom color=orange] (current page.south west) rectangle (current page.north east);\n\\end{tikzpicture}")
+
+        # bg_image_placeholder.tex (minimal, needs a dummy image)
+        # Create a dummy image file (e.g., a tiny PNG).
+        # For simplicity in this text-based environment, I'll just create an empty file.
+        # In a real scenario, this should be a valid tiny image.
+        self.dummy_image_name = "dummy_image_for_test.png"
+        with open(os.path.join(self.test_templates_root_dir, self.dummy_image_name), "wb") as f:
+            # Smallest possible valid PNG (1x1 transparent pixel)
+            f.write(bytes.fromhex("89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C4890000000A49444154789C63000100000500010D0A2DB40000000049454E444145426082"))
+
+        with open(os.path.join(self.test_bg_dir, "test_bg_image.tex"), "w") as f:
+            f.write(f"% Test Image BG\n\\begin{{tikzpicture}}[remember picture, overlay]\n\\node at (current page.center) {{\\includegraphics[width=\\paperwidth, height=\\paperheight, keepaspectratio=false]{{{self.dummy_image_name}}}}};\n\\end{{tikzpicture}}")
+
+        # mg_columns.tex (minimal)
+        with open(os.path.join(self.test_mg_dir, "test_mg_columns.tex"), "w") as f:
+            f.write("% Test Columns MG\n\\begin{center}\\Large %%TITLE%%\\end{center}\n\\begin{multicols}{2}\n%%CONTENT%%\n\\end{multicols}")
+
+        # mg_boxed_content.tex (minimal)
+        with open(os.path.join(self.test_mg_dir, "test_mg_boxed.tex"), "w") as f:
+            f.write("% Test Boxed MG\n\\begin{center}\\begin{tikzpicture}\n\\node[draw=red, fill=red!10, inner sep=5pt] {{\\begin{minipage}{0.7\\textwidth}\\centering\\Large %%TITLE%%\\par\\small %%CONTENT%%\\end{minipage}}};\n\\end{tikzpicture}\\end{center}")
+
+
         # Patch the global TEMPLATE_BASE_DIR in app.py to use our temp directory
         # This requires that app.TEMPLATE_BASE_DIR is accessible and modifiable,
         # or that os.path.join is patched where TEMPLATE_BASE_DIR is used.
@@ -192,6 +218,56 @@ class TestApp(unittest.TestCase):
         self.assertEqual(json_response['error'], 'LaTeX compilation failed.')
         self.assertIn('compilation_log_preview', json_response)
         self.assertIn('pdflatex command not found', json_response['compilation_log_preview'])
+
+    def test_bg_gradient_template(self):
+        """Test PDF generation with the gradient background template."""
+        response = self.client.get('/poster/compose?'
+                                   'foreground=test_valid_fg&'
+                                   'midground=test_valid_mg&'
+                                   'background=test_bg_gradient&' # New template
+                                   'title=Gradient%20BG&'
+                                   'content=Content%20with%20gradient')
+        self.assertEqual(response.status_code, 200, f"Failed with gradient BG. Log: {response.data.decode('utf-8', errors='ignore') if response.status_code != 200 else ''}")
+        self.assertEqual(response.mimetype, 'application/pdf')
+        self.assertTrue(response.data.startswith(b'%PDF-'))
+
+    def test_bg_image_template(self):
+        """Test PDF generation with the image background template."""
+        # Note: This test relies on the dummy_image_for_test.png created in setUp.
+        # The actual image content isn't validated, just that pdflatex can find and include it without error.
+        response = self.client.get('/poster/compose?'
+                                   'foreground=test_valid_fg&'
+                                   'midground=test_valid_mg&'
+                                   'background=test_bg_image&' # New template
+                                   'title=Image%20BG&'
+                                   'content=Content%20with%20image%20bg')
+        self.assertEqual(response.status_code, 200, f"Failed with image BG. Log: {response.data.decode('utf-8', errors='ignore') if response.status_code != 200 else ''}")
+        self.assertEqual(response.mimetype, 'application/pdf')
+        self.assertTrue(response.data.startswith(b'%PDF-'))
+
+    def test_mg_columns_template(self):
+        """Test PDF generation with the two-column midground template."""
+        response = self.client.get('/poster/compose?'
+                                   'foreground=test_valid_fg&'
+                                   'midground=test_mg_columns&' # New template
+                                   'background=test_valid_bg&'
+                                   'title=Two%20Column%20Layout&'
+                                   'content=This%20is%20the%20first%20column.%20\\newpage%20This%20is%20the%20second%20column.%20Lorem%20ipsum%20dolor%20sit%20amet.')
+        self.assertEqual(response.status_code, 200, f"Failed with columns MG. Log: {response.data.decode('utf-8', errors='ignore') if response.status_code != 200 else ''}")
+        self.assertEqual(response.mimetype, 'application/pdf')
+        self.assertTrue(response.data.startswith(b'%PDF-'))
+
+    def test_mg_boxed_template(self):
+        """Test PDF generation with the boxed midground template."""
+        response = self.client.get('/poster/compose?'
+                                   'foreground=test_valid_fg&'
+                                   'midground=test_mg_boxed&' # New template
+                                   'background=test_valid_bg&'
+                                   'title=Boxed%20Content&'
+                                   'content=This%20content%20is%20inside%20a%20nice%20box.')
+        self.assertEqual(response.status_code, 200, f"Failed with boxed MG. Log: {response.data.decode('utf-8', errors='ignore') if response.status_code != 200 else ''}")
+        self.assertEqual(response.mimetype, 'application/pdf')
+        self.assertTrue(response.data.startswith(b'%PDF-'))
 
 
 if __name__ == '__main__':

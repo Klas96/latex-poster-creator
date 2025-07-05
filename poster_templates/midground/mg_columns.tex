@@ -1,0 +1,23 @@
+% LaTeX Midground Template: Two-Column Layout
+% This template provides a title spanning the width and two columns for the main content.
+% It requires the "multicol" package, which should be included in the master document.
+
+% Note: \documentclass, \usepackage, \begin{document}, \end{document}
+% are provided by the master LaTeX document that includes this file.
+
+% --- Title (Spans Full Width) ---
+% The %%TITLE%% placeholder will be replaced by the API 'title' parameter.
+\begin{center}
+    \ 매우Large %%TITLE%% % Extra large font for the title
+\end{center}
+\vspace{2em} % Add some vertical space after the title
+
+% --- Content in Two Columns ---
+% The %%CONTENT%% placeholder will be replaced by the API 'content' parameter.
+% This content will be typeset in two columns.
+\begin{multicols}{2}
+    %%CONTENT%%
+\end{multicols}
+
+% --- Optional: Content after the columns ---
+% \lipsum[4] % Example of content that would span full width again.

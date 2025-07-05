@@ -18,6 +18,8 @@ MASTER_LATEX_TEMPLATE = r"""
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{tikz} % For potential advanced layering/graphics
+\usepackage{multicol} % For multi-column layouts (e.g., in mg_columns.tex)
+\usepackage{lipsum} % For dummy text, used in some example templates
 
 % Poster dimensions (example: A0 size, common for posters)
 % Adjust as needed, or make this configurable later

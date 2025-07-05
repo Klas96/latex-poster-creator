@@ -46,8 +46,11 @@ The API will typically be available at `http://127.0.0.1:5001`.
 -   **Description:** Composes a poster from specified templates, populates title and content, compiles to PDF, and returns the PDF.
 -   **Query Parameters:**
     -   `background` (string, required): Name of the background template file (without `.tex` extension) from the `poster_templates/background/` directory.
+        -   Examples: `template`, `bg_gradient`, `bg_image_placeholder` (requires `placeholder_bg_image.jpg` to exist).
     -   `midground` (string, required): Name of the midground template file (without `.tex` extension) from the `poster_templates/midground/` directory.
+        -   Examples: `template`, `mg_columns`, `mg_boxed_content`.
     -   `foreground` (string, required): Name of the foreground template file (without `.tex` extension) from the `poster_templates/foreground/` directory.
+        -   Example: `template`.
     -   `title` (string, optional): Title for the poster, inserted into the midground template.
     -   `content` (string, optional): Main content for the poster, inserted into the midground template.
 -   **Success Response (200 OK):**

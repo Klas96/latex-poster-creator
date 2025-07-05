@@ -1,0 +1,22 @@
+% LaTeX Background Template: Full Page Image Placeholder
+% This file shows how to include a full-page background image.
+% It requires TikZ and graphicx, which should be included in the master document.
+% You will need to provide an image file (e.g., "placeholder_bg_image.jpg")
+% in a location accessible by LaTeX (e.g., the root directory or a specified graphics path).
+
+% Note: \documentclass, \usepackage, \geometry, \begin{document}, \end{document}
+% are provided by the master LaTeX document that includes this file.
+
+\begin{tikzpicture}[remember picture, overlay]
+  % The node containing the image is placed at the center of the page
+  % and sized to cover the entire page.
+  \node at (current page.center) [opacity=0.8] { % Adjust opacity as needed
+    % Replace "placeholder_bg_image.jpg" with your actual image file.
+    % Ensure the image path is correct or the image is in LaTeX's search path.
+    % The width and height are set to the paper dimensions.
+    % \paperwidth and \paperheight are available from the geometry package in master.
+    \includegraphics[width=\paperwidth, height=\paperheight, keepaspectratio=false]{placeholder_bg_image.jpg}
+  };
+\end{tikzpicture}
+
+% --- No other content needed for a full-page image background ---

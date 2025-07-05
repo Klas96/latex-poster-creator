@@ -1,0 +1,18 @@
+% LaTeX Background Template: Vertical Gradient
+% This file provides a simple vertical gradient background.
+% It requires TikZ, which should be included in the master document.
+
+% Note: \documentclass, \usepackage, \geometry, \begin{document}, \end{document}
+% are provided by the master LaTeX document that includes this file.
+
+\begin{tikzpicture}[remember picture, overlay]
+  % Define the gradient colors
+  \colorlet{topcolor}{blue!30}
+  \colorlet{bottomcolor}{white}
+
+  % Apply the gradient to the entire page
+  \shade[top color=topcolor, bottom color=bottomcolor]
+    (current page.south west) rectangle (current page.north east);
+\end{tikzpicture}
+
+% --- No other content needed for a simple gradient background ---
